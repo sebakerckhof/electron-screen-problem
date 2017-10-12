@@ -6,6 +6,7 @@ const exec = pify(child_process.exec);
 
 const app = electron.app;
 
+// Gets the screen information from xrandr and returns the first connected screen
 async function getXrandrScreen(){
   const output = await exec('DISPLAY=:0.0 xrandr');
   const xScreens = parseXrandr(output);
@@ -18,6 +19,8 @@ async function getXrandrScreen(){
   return selectedScreen;
 }
 
+// Gets the screen information from electron and returns the first screen
+// Does not work with screens that have a scale factor <> 1
 function getElectronScreen(){
   const screens = electron.screen.getAllDisplays();
   if(!screens.length){
@@ -25,12 +28,13 @@ function getElectronScreen(){
   }
 
   const selectedScreen = screens[0];
-  if(!selectedScreen.scaleFactor === 1){
+  if(selectedScreen.scaleFactor !== 1){
     throw new Error('This test only works with screens that have scaleFactor = 1');
   }
   return selectedScreen;
 }
 
+// Compare the screen resolution received from xrandr with the one from electron
 function compareXandE(xScreen, eScreen){
   const activeMode = xScreen.modes.find(m => m.current);
   if(!activeMode){
@@ -46,6 +50,7 @@ function compareXandE(xScreen, eScreen){
   console.log(result);
 }
 
+// Sets a new display mode (resolution)
 async function pickNewMode(xScreen){
   const activeMode = xScreen.modes.find(m => m.current);
   const newMode = xScreen.modes.find(m => m.width !== activeMode.width || m.height !== activeMode.height);
@@ -54,10 +59,12 @@ async function pickNewMode(xScreen){
   console.log(`Display mode changed`);
 }
 
+// Wait helper
 function wait(ms){
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Run the actual program
 app.on('ready', async () => {
   console.log("1. Getting and comparing screens from xrandr and electron");
   let xScreen = await getXrandrScreen();
